@@ -422,7 +422,7 @@ public class MoviePlayer: AVQueuePlayer, ImageSource {
     
     func actuallySeekToTime() {
         // Avoid seeking choppy when fast seeking
-        // https://developer.apple.com/library/archive/qa/qa1820/_index.html#//apple_ref/doc/uid/DTS40016828    
+        // https://developer.apple.com/library/archive/qa/qa1820/_index.html#//apple_ref/doc/uid/DTS40016828
         guard !isSeeking, let seekingInfo = nextSeeking, isReadyToPlay else { return }
         isSeeking = true
         needRenderSeekingFrame = true
@@ -710,12 +710,12 @@ private extension MoviePlayer {
         let playTime = currentTime()
         guard playTime.seconds > 0 else { return }
         
-        guard let videoOutput = videoOutput else {
+        guard let playerItemVideoOutput = playerItemVideoOutput else {
             _notifyTimeObserver(with: playTime)
             return
         }
         
-        guard !isProcessing, videoOutput.hasNewPixelBuffer(forItemTime: playTime) == true else { return }
+        guard !isProcessing, playerItemVideoOutput.hasNewPixelBuffer(forItemTime: playTime) == true else { return }
         
         // There are still some previous frames coming after seeking. So we drop these frames
         if isSeeking, let dropping = dropping, dropping.needDrop(time: playTime) {
@@ -731,7 +731,7 @@ private extension MoviePlayer {
         
         isProcessing = true
         var timeForDisplay: CMTime = .zero
-        guard let pixelBuffer = videoOutput.copyPixelBuffer(forItemTime: playTime, itemTimeForDisplay: &timeForDisplay) else {
+        guard let pixelBuffer = playerItemVideoOutput.copyPixelBuffer(forItemTime: playTime, itemTimeForDisplay: &timeForDisplay) else {
             print("[MoviePlayer] Failed to copy pixel buffer at time:\(playTime)")
             isProcessing = false
             return
@@ -745,7 +745,7 @@ private extension MoviePlayer {
         }
     }
     
-    var videoOutput: AVPlayerItemVideoOutput? {
+    var playerItemVideoOutput: AVPlayerItemVideoOutput? {
         return currentItem?.outputs.first(where: { $0 is AVPlayerItemVideoOutput }) as? AVPlayerItemVideoOutput
     }
     
