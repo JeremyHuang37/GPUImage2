@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.homepage = 'https://github.com/BradLarson/GPUImage2'
   s.author   = { 'Brad Larson' => 'contact@sunsetlakesoftware.com' }
 
-  s.source   = { :git => 'https://github.com/RoCry/GPUImage2' }
+  s.source   = { :git => 'git@github.com:JeremyHuang37/GPUImage2.git' }
 
   s.source_files = 'framework/Source/**/*.{h,m,swift}'
   s.resources = 'framework/Source/Operations/Shaders/*.{fsh}'
