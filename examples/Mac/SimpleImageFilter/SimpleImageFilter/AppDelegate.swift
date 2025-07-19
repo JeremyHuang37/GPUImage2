@@ -3,14 +3,13 @@ import GPUImage
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
-
     @IBOutlet weak var window: NSWindow!
     @IBOutlet weak var renderView: RenderView!
 
-    var image:PictureInput!
-    var filter:SaturationAdjustment!
+    var image: PictureInput!
+    var filter: SaturationAdjustment!
 
-    @objc dynamic var filterValue = 1.0 {
+    dynamic var filterValue = 1.0 {
         didSet {
             filter.saturation = GLfloat(filterValue)
             image.processImage()
@@ -18,8 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        let inputImage = NSImage(named:NSImage.Name(rawValue: "Lambeau.jpg"))!
-        image = PictureInput(image:inputImage)
+        let inputImage = NSImage(named: "Lambeau.jpg")!
+        image = PictureInput(image: inputImage)
         
         filter = SaturationAdjustment()
         
@@ -27,4 +26,3 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         image.processImage()
     }
 }
-

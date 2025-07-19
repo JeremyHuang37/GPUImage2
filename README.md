@@ -20,8 +20,6 @@ The objective of the framework is to make it as easy as possible to set up and p
 
 BSD-style, with the full license available with the framework in License.txt.
 
-Currently, GPUImage uses Lode Vandevenne's <a href="https://lodev.org/lodepng/">LodePNG</a> for PNG output on Linux, as well as Paul Hudson's <a href="https://github.com/twostraws/SwiftGD">SwiftGD</a> for image loading. lodepng is released under the zlib license, and SwiftGD is released under the MIT License.
-
 ## Technical requirements ##
 
 - Swift 3
@@ -56,21 +54,15 @@ Note that you may need to build your project once to parse and build the GPUImag
 
 ## Using GPUImage in a Linux application ##
 
-This project supports the Swift Package Manager, so you should be able to add it as a dependency in your Package.swift file like the following:
+Eventually, this project will support the Swift Package Manager, which will make it trivial to use with a Linux project. Unfortunately, that's not yet the case, so it can take a little work to get this to build for a Linux project.
 
-```
-.package(url: "https://github.com/BradLarson/GPUImage2.git", from: "0.0.1"), 
-```
+Right now, there are two build scripts in the framework directory, one named compile-LinuxGL.sh and one named compile-RPi.sh. The former builds the framework for a Linux target using OpenGL and the latter builds for the Raspberry Pi. I can add other targets as I test them, but I've only gotten this operational in desktop Ubuntu, on Ubuntu running on a Jetson TK1 development board, and on Raspbian running on a Raspberry Pi 2 and Pi 3.
 
-along with an 
+Before compiling the framework, you'll need to get Swift up and running on your system. For desktop Ubuntu installs, you can follow Apple's guidelines on <a href="https://swift.org/download/">their Downloads page</a>. Those instructions also worked for me on the Jetson TK1 dev board.
 
-```
-import GPUImage
-```
+For ARM Linux devices like the Raspberry Pi, follow <a href="http://dev.iachieved.it/iachievedit/open-source-swift-on-raspberry-pi-2/">these steps exactly</a> to get a working Swift compiler installed. Pay close attention to the steps for getting Clang-2.6 installed and the use of update-alternatives. These are the steps I used to go from stock Raspbian to a Swift install on 
 
-in your application code.
-
-Before compiling the framework, you'll need to get Swift up and running on your system. For desktop Ubuntu installs, you can follow Apple's guidelines on <a href="https://swift.org/download/">their Downloads page</a>.
+I have noticed that Swift 2.2 compiler snapshots newer than January 11 or so are missing Foundation, which I need for the framework, so maybe go with a snaphot earlier than that. 
 
 After Swift, you'll need to install Video4Linux to get access to standard USB webcams as inputs:
 
@@ -84,15 +76,13 @@ On the Raspberry Pi, you'll need to make sure that the Broadcom Videocore header
 sudo apt-get install libraspberrypi-dev
 ```
 
-For desktop Linux and other OpenGL devices (Jetson family), you'll need to make sure GLUT and the OpenGL headers are installed. The framework currently uses GLUT for its output. GLUT can be used on the Raspberry Pi via the new experimental OpenGL support there, but I've found that it's significantly slower than using the OpenGL ES APIs and the Videocore interface that ships with the Pi. Also, if you enable the OpenGL support you currently lock yourself out of using the Videocore interface.
+For desktop Linux and other OpenGL devices (Jetson TK1), you'll need to make sure GLUT and the OpenGL headers are installed. The framework currently uses GLUT for its output. GLUT can be used on the Raspberry Pi via the new experimental OpenGL support there, but I've found that it's significantly slower than using the OpenGL ES APIs and the Videocore interface that ships with the Pi. Also, if you enable the OpenGL support you currently lock yourself out of using the Videocore interface.
 
-Once all of that is set up, you can use
+Once all of that is set up, to build the framework go to the /framework directory and run the appropriate build script. This will compile and generate a Swift module and a shared library for the framework. Copy the shared library into a system-accessible library path, like /usr/lib.
 
-```
-swift build
-```
+To build any of the sample applications, go to the examples/ subdirectory for that example (examples are platform-specific) and run the compile.sh build script to compile the example. The framework must be built before any example application.
 
-in the main GPUImage directory to build the framework, or do the same in the examples/Linux-OpenGL/SimpleVideoFilter directory. This will build a sample application that filters live video from a USB camera and displays the results in real time to the screen. The application itself will be contained within the .build directory and its platform-specific subdirectories. Look for the SimpleVideoFilter binary and run that.
+As Swift becomes incorporated into more platforms, and as I add support for the Swift Package Manager, these Linux build steps will become much easier. My setup is kind of a hack at present.
 
 ## Performing common tasks ##
 
@@ -162,7 +152,7 @@ There are a few different ways to approach filtering an image. The easiest are t
 ```swift
 let testImage = UIImage(named:"WID-small.jpg")!
 let toonFilter = SmoothToonFilter()
-let filteredImage = testImage.filterWithOperation(toonFilter)
+let filteredImage = try! testImage.filterWithOperation(toonFilter)
 ```
 
 for a more complex pipeline:
@@ -171,7 +161,7 @@ for a more complex pipeline:
 let testImage = UIImage(named:"WID-small.jpg")!
 let toonFilter = SmoothToonFilter()
 let luminanceFilter = Luminance()
-let filteredImage = testImage.filterWithPipeline{input, output in
+let filteredImage = try! testImage.filterWithPipeline{input, output in
     input --> toonFilter --> luminanceFilter --> output
 }
 ```
@@ -183,7 +173,7 @@ Both of these convenience methods wrap several operations. To feed a picture int
 ```swift
 let toonFilter = SmoothToonFilter()
 let testImage = UIImage(named:"WID-small.jpg")!
-let pictureInput = PictureInput(image:testImage)
+let pictureInput = try! PictureInput(image:testImage)
 let pictureOutput = PictureOutput()
 pictureOutput.imageAvailableCallback = {image in
     // Do something with image
@@ -196,23 +186,115 @@ In the above, the imageAvailableCallback will be triggered right at the processI
 
 ### Filtering and re-encoding a movie ###
 
-To filter an existing movie file, you can write code like the following:
+To filter and playback an existing movie file, you can write code like the following:
 
 ```swift
 
 do {
-	let bundleURL = Bundle.main.resourceURL!
-	let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
-	movie = try MovieInput(url:movieURL, playAtActualSpeed:true)
+    let bundleURL = Bundle.main.resourceURL!
+    let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
+
+    let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM]
+
+    movie = try MovieInput(url:movieURL, playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
+    speaker = SpeakerOutput()
+    movie.audioEncodingTarget = speaker
+
     filter = SaturationAdjustment()
     movie --> filter --> renderView
+
     movie.start()
+    speaker.start()
 } catch {
-    fatalError("Could not initialize rendering pipeline: \(error)")
+    print("Couldn't process movie with error: \(error)")
 }
 ```
 
 where renderView is an instance of RenderView that you've placed somewhere in your view hierarchy. The above loads a movie named "sample_iPod.m4v" from the application's bundle, creates a saturation filter, and directs movie frames to be processed through the saturation filter on their way to the screen. start() initiates the movie playback.
+
+To filter an existing movie file and save the result to a new movie file you can write code like the following:
+
+
+```swift
+let bundleURL = Bundle.main.resourceURL!
+// The movie you want to reencode
+let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
+
+let documentsDir = FileManager().urls(for:.documentDirectory, in:.userDomainMask).first!
+// The location you want to save the new video
+let exportedURL = URL(string:"test.mp4", relativeTo:documentsDir)!
+
+let asset = AVURLAsset(url:movieURL, options:[AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)])
+
+guard let videoTrack = asset.tracks(withMediaType:.video).first else { return }
+let audioTrack = asset.tracks(withMediaType:.audio).first
+
+// If you would like passthrough audio instead, set both audioDecodingSettings and audioEncodingSettings to nil
+let audioDecodingSettings:[String:Any] = [AVFormatIDKey:kAudioFormatLinearPCM] // Noncompressed audio samples
+
+do {
+    movieInput = try MovieInput(asset:asset, videoComposition:nil, playAtActualSpeed:false, loop:false, audioSettings:audioDecodingSettings)
+}
+catch {
+    print("ERROR: Unable to setup MovieInput with error: \(error)")
+    return
+}
+
+try? FileManager().removeItem(at: exportedURL)
+
+let videoEncodingSettings:[String:Any] = [
+    AVVideoCompressionPropertiesKey: [
+        AVVideoExpectedSourceFrameRateKey:videoTrack.nominalFrameRate,
+        AVVideoAverageBitRateKey:videoTrack.estimatedDataRate,
+        AVVideoProfileLevelKey:AVVideoProfileLevelH264HighAutoLevel,
+        AVVideoH264EntropyModeKey:AVVideoH264EntropyModeCABAC,
+        AVVideoAllowFrameReorderingKey:videoTrack.requiresFrameReordering],
+    AVVideoCodecKey:AVVideoCodecH264]
+
+var acl = AudioChannelLayout()
+memset(&acl, 0, MemoryLayout<AudioChannelLayout>.size)
+acl.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
+let audioEncodingSettings:[String:Any] = [
+    AVFormatIDKey:kAudioFormatMPEG4AAC,
+    AVNumberOfChannelsKey:2,
+    AVSampleRateKey:AVAudioSession.sharedInstance().sampleRate,
+    AVChannelLayoutKey:NSData(bytes:&acl, length:MemoryLayout<AudioChannelLayout>.size),
+    AVEncoderBitRateKey:96000
+]
+
+do {
+    movieOutput = try MovieOutput(URL:exportedURL, size:Size(width:Float(videoTrack.naturalSize.width), height:Float(videoTrack.naturalSize.height)), fileType:AVFileType.mp4.rawValue, liveVideo:false, videoSettings:videoEncodingSettings, videoNaturalTimeScale:videoTrack.naturalTimeScale, audioSettings:audioEncodingSettings)
+}
+catch {
+    print("ERROR: Unable to setup MovieOutput with error: \(error)")
+    return
+}
+
+filter = SaturationAdjustment()
+
+if(audioTrack != nil) { movieInput.audioEncodingTarget = movieOutput }
+movieInput.synchronizedMovieOutput = movieOutput
+movieInput --> filter --> movieOutput
+
+movieInput.completion = {
+    self.movieOutput.finishRecording {
+        self.movieInput.audioEncodingTarget = nil
+        self.movieInput.synchronizedMovieOutput = nil
+        print("Encoding finished")
+    }
+}
+
+movieOutput.startRecording() { started, error in
+    if(!started) {
+        print("ERROR: MovieOutput unable to start writing with error: \(String(describing: error))")
+        return
+    }
+    self.movieInput.start()
+    print("Encoding started")
+}
+```
+
+ The above loads a movie named "sample_iPod.m4v" from the application's bundle, creates a saturation filter, and directs movie frames to be processed through the saturation filter on their way to the new file. In addition it writes the audio in AAC format to the new file.
 
 ### Writing a custom image processing operation ###
 

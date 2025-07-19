@@ -17,13 +17,13 @@ class ViewController: UIViewController {
     }()
     let saturationFilter = SaturationAdjustment()
     let blendFilter = AlphaBlend()
-    var camera:Camera!
+    var camera: Camera!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         do {
-            camera = try Camera(sessionPreset:.vga640x480)
+            camera = try Camera(sessionPreset: AVCaptureSessionPreset640x480)
             camera.runBenchmark = true
             camera.delegate = self
             camera --> saturationFilter --> blendFilter --> renderView
@@ -46,8 +46,8 @@ class ViewController: UIViewController {
     @IBAction func capture(_ sender: AnyObject) {
         print("Capture")
         do {
-            let documentsDir = try FileManager.default.url(for:.documentDirectory, in:.userDomainMask, appropriateFor:nil, create:true)
-            saturationFilter.saveNextFrameToURL(URL(string:"TestImage.png", relativeTo:documentsDir)!, format:.png)
+            let documentsDir = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            saturationFilter.saveNextFrameToURL(URL(string: "TestImage.png", relativeTo: documentsDir)!, format: .png)
         } catch {
             print("Couldn't save image: \(error)")
         }
@@ -76,9 +76,9 @@ extension ViewController: CameraDelegate {
     func faceLines(_ bounds: CGRect) -> [Line] {
         // convert from CoreImage to GL coords
         let flip = CGAffineTransform(scaleX: 1, y: -1)
-        let rotate = flip.rotated(by: CGFloat(-.pi / 2.0))
+        let rotate = flip.rotated(by: CGFloat(-M_PI_2))
         let translate = rotate.translatedBy(x: -1, y: -1)
-        let xform = translate.scaledBy(x: CGFloat(2/fbSize.width), y: CGFloat(2/fbSize.height))
+        let xform = translate.scaledBy(x: CGFloat(2 / fbSize.width), y: CGFloat(2 / fbSize.height))
         let glRect = bounds.applying(xform)
 
         let x = Float(glRect.origin.x)
@@ -91,9 +91,9 @@ extension ViewController: CameraDelegate {
         let bl = Position(x, y + height)
         let br = Position(x + width, y + height)
 
-        return [.segment(p1:tl, p2:tr),   // top
-                .segment(p1:tr, p2:br),   // right
-                .segment(p1:br, p2:bl),   // bottom
-                .segment(p1:bl, p2:tl)]   // left
+        return [.segment(p1: tl, p2: tr),   // top
+                .segment(p1: tr, p2: br),   // right
+                .segment(p1: br, p2: bl),   // bottom
+                .segment(p1: bl, p2: tl)]   // left
     }
 }

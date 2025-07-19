@@ -1,27 +1,29 @@
-#if canImport(OpenGL)
-import OpenGL.GL3
+#if os(Linux)
+#if GLES
+    import COpenGLES.gles2
+    #else
+    import COpenGL
 #endif
-
-#if canImport(OpenGLES)
-import OpenGLES
+#else
+#if GLES
+    import OpenGLES
+    #else
+    import OpenGL.GL3
 #endif
-
-#if canImport(COpenGLES)
-import COpenGLES.gles2
-#endif
-
-#if canImport(COpenGL)
-import COpenGL
 #endif
 
 public class TextureInput: ImageSource {
     public let targets = TargetContainer()
     
-    let textureFramebuffer:Framebuffer
+    #if DEBUG
+    public var debugRenderInfo: String = ""
+    #endif
+    
+    let textureFramebuffer: Framebuffer
 
-    public init(texture:GLuint, size:Size, orientation:ImageOrientation = .portrait) {
+    public init(texture: GLuint, size: Size, orientation: ImageOrientation = .portrait) {
         do {
-            textureFramebuffer = try Framebuffer(context:sharedImageProcessingContext, orientation:orientation, size:GLSize(size), textureOnly:true, overriddenTexture:texture)
+            textureFramebuffer = try Framebuffer(context: sharedImageProcessingContext, orientation: orientation, size: GLSize(size), textureOnly: true, overriddenTexture: texture)
         } catch {
             fatalError("Could not create framebuffer for custom input texture.")
         }
@@ -31,8 +33,8 @@ public class TextureInput: ImageSource {
         updateTargetsWithFramebuffer(textureFramebuffer)
     }
     
-    public func transmitPreviousImage(to target:ImageConsumer, atIndex:UInt) {
+    public func transmitPreviousImage(to target: ImageConsumer, atIndex: UInt) {
         textureFramebuffer.lock()
-        target.newFramebufferAvailable(textureFramebuffer, fromSourceIndex:atIndex)
+        target.newFramebufferAvailable(textureFramebuffer, fromSourceIndex: atIndex)
     }
 }

@@ -1,18 +1,15 @@
-#if canImport(OpenGL)
-import OpenGL.GL3
+#if os(Linux)
+#if GLES
+    import COpenGLES.gles2
+    #else
+    import COpenGL
 #endif
-
-#if canImport(OpenGLES)
-import OpenGLES
+#else
+#if GLES
+    import OpenGLES
+    #else
+    import OpenGL.GL3
 #endif
-
-#if canImport(COpenGLES)
-import COpenGLES.gles2
-let GL_BGRA = GL_RGBA // A hack: Raspberry Pi needs this or framebuffer creation fails
-#endif
-
-#if canImport(COpenGL)
-import COpenGL
 #endif
 
 public enum PixelFormat {
@@ -35,12 +32,15 @@ public enum PixelFormat {
 public class RawDataInput: ImageSource {
     public let targets = TargetContainer()
     
+    #if DEBUG
+    public var debugRenderInfo: String = ""
+    #endif
+    
     public init() {
-        
     }
 
-    public func uploadBytes(_ bytes:[UInt8], size:Size, pixelFormat:PixelFormat, orientation:ImageOrientation = .portrait) {
-        let dataFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation:orientation, size:GLSize(size), textureOnly:true, internalFormat:pixelFormat.toGL(), format:pixelFormat.toGL())
+    public func uploadBytes(_ bytes: [UInt8], size: Size, pixelFormat: PixelFormat, orientation: ImageOrientation = .portrait) {
+        let dataFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation: orientation, size: GLSize(size), textureOnly: true, internalFormat: pixelFormat.toGL(), format: pixelFormat.toGL())
 
         glActiveTexture(GLenum(GL_TEXTURE1))
         glBindTexture(GLenum(GL_TEXTURE_2D), dataFramebuffer.texture)
@@ -49,7 +49,7 @@ public class RawDataInput: ImageSource {
         updateTargetsWithFramebuffer(dataFramebuffer)
     }
     
-    public func transmitPreviousImage(to target:ImageConsumer, atIndex:UInt) {
+    public func transmitPreviousImage(to target: ImageConsumer, atIndex: UInt) {
         // TODO: Determine if this is necessary for the raw data uploads
     }
 }

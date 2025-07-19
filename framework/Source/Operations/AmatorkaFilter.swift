@@ -11,8 +11,12 @@ public class AmatorkaFilter: LookupFilter {
     public override init() {
         super.init()
         
-        ({lookupImage = PictureInput(imageName:"lookup_amatorka.png")})()
-        ({intensity = 1.0})()
+        do {
+            try ({ lookupImage = try PictureInput(imageName: "lookup_amatorka.png") })()
+        } catch {
+            print("ERROR: Unable to create PictureInput \(error)")
+        }
+        ({ intensity = 1.0 })()
     }
 }
 #endif
