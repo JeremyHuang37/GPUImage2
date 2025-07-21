@@ -1,10 +1,10 @@
 public struct ResizeOutputInfo {
     // size in pixel
-    let finalCropSize: Size
+    public let finalCropSize: Size
     // normalized size within [0, 1] of inputSize
-    let normalizedCropSize: Size
+    public let normalizedCropSize: Size
     // normalized offset to [0, 1] of inputSize
-    let normalizedOffsetFromOrigin: Position
+    public let normalizedOffsetFromOrigin: Position
 }
 
 public func limitedSizeAndRatio(of inputSize: Size, to maxSize: Size) -> ResizeOutputInfo {
