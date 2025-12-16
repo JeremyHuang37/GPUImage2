@@ -123,7 +123,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     var shouldWaitForEncoding: Bool {
         return !encodingLiveVideo || waitUtilDataIsReadyForLiveVideo
     }
-    var preferredTransform: CGAffineTransform?
+    public var preferredTransform: CGAffineTransform?
     private var isProcessing = false
     #if DEBUG
     public var debugRenderInfo: String = ""
