@@ -124,6 +124,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
         return !encodingLiveVideo || waitUtilDataIsReadyForLiveVideo
     }
     public var preferredTransform: CGAffineTransform?
+    public var metadata: [AVMetadataItem]?
     private var isProcessing = false
     #if DEBUG
     public var debugRenderInfo: String = ""
@@ -243,6 +244,10 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
                 
                 if let preferredTransform = self.preferredTransform {
                     self.assetWriterVideoInput.transform = preferredTransform
+                }
+                // 设置 metaData，否者合成 Live Photo 等会失败，因为会丢失 identifer 和 preferredTransform 等信息
+                if let metadata = self.metadata {
+                    self.assetWriter.metadata = metadata
                 }
                 print("MovieOutput starting writing...")
                 var success = false
